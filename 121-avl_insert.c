@@ -1,111 +1,111 @@
 #include "binary_trees.h"
 
-/**
- * findMinInRightSubtree - Finds the minimum value in the
- * right subtree of a node.
- * @node: The node to check.
- * Return: The minimum value found in the right subtree.
- */
-int findMinInRightSubtree(bst_t *node)
-{
-	int left = 0;
+size_t height(const binary_tree_t *tree);
+int balance(const binary_tree_t *tree);
+avl_t *avl_insert_recursive(avl_t **tree, avl_t *parent,
+		avl_t **new, int value);
+avl_t *avl_insert(avl_t **tree, int value);
 
-	if (node == NULL)
+/**
+ * height - Measures the height of a binary tree.
+ * @tree: A pointer to the root node of the tree to measure the height.
+ *
+ * Return: If tree is NULL, your function must return 0, else return height.
+ */
+size_t height(const binary_tree_t *tree)
+{
+	if (tree != NULL)
 	{
-		return (0);
+		size_t l = 0, r = 0;
+
+		l = tree->left ? 1 + binary_tree_height(tree->left) : 1;
+		r = tree->right ? 1 + binary_tree_height(tree->right) : 1;
+		return ((l > r) ? l : r);
+	}
+	return (0);
+}
+
+/**
+ * balance - Measures the balance factor of a binary tree.
+ * @tree: A pointer to the root node of the tree to measure the balance factor.
+ *
+ * Return: If tree is NULL, return 0, else return balance factor.
+ */
+int balance(const binary_tree_t *tree)
+{
+	return (tree != NULL ? height(tree->left) - height(tree->right) : 0);
+}
+
+/**
+ * avl_insert_recursive - Inserts a value into an AVL tree recursively.
+ * @tree: A double pointer to the root node of the AVL tree to insert into.
+ * @parent: The parent node of the current working node.
+ * @new: A double pointer to store the new node.
+ * @value: The value to insert into the AVL tree.
+ *
+ * Return: A pointer to the new root after insertion, or NULL on failure.
+ */
+avl_t *avl_insert_recursive(avl_t **tree, avl_t *parent,
+		avl_t **new, int value)
+{
+	int bfactor;
+
+	if (*tree == NULL)
+		return (*new = binary_tree_node(parent, value));
+
+	if ((*tree)->n > value)
+	{
+		(*tree)->left = avl_insert_recursive(&(*tree)->left, *tree, new, value);
+		if ((*tree)->left == NULL)
+			return (NULL);
+	}
+	else if ((*tree)->n < value)
+	{
+		(*tree)->right = avl_insert_recursive(&(*tree)->right, *tree, new, value);
+		if ((*tree)->right == NULL)
+			return (NULL);
 	}
 	else
+		return (*tree);
+
+	bfactor = balance(*tree);
+	if (bfactor > 1 && (*tree)->left->n > value)
+		*tree = binary_tree_rotate_right(*tree);
+	else if (bfactor < -1 && (*tree)->right->n < value)
+		*tree = binary_tree_rotate_left(*tree);
+	else if (bfactor > 1 && (*tree)->left->n < value)
 	{
-		left = findMinInRightSubtree(node->left);
-		if (left == 0)
-		{
-			return (node->n);
-		}
-		return (left);
+		(*tree)->left = binary_tree_rotate_left((*tree)->left);
+		*tree = binary_tree_rotate_right(*tree);
 	}
+	else if (bfactor < -1 && (*tree)->right->n > value)
+	{
+		(*tree)->right = binary_tree_rotate_right((*tree)->right);
+		*tree = binary_tree_rotate_left(*tree);
+	}
+
+	return (*tree);
 }
 
 /**
- * replaceWithSuccessor - Replaces a node's value with the minimum
- * value in its right subtree.
- * @root: The node to update.
- * Return: The new value found.
+ * avl_insert - Inserts a value into an AVL tree.
+ * @tree: A double pointer to the root node of the AVL tree to insert into.
+ * @value: The value to insert into the AVL tree.
+ *
+ * Return: A pointer to the inserted node, or NULL on failure.
  */
-int replaceWithSuccessor(bst_t *root)
+avl_t *avl_insert(avl_t **tree, int value)
 {
-	int new_value = 0;
+	avl_t *new = NULL;
 
-	new_value = findMinInRightSubtree(root->right);
-	root->n = new_value;
-	return (new_value);
-}
-
-/**
- * removeNodeFromBST - Removes a node from a BST based on its children.
- * @root: The node to remove.
- * Return: 0 if the node has no children or rearranges the
- * tree based on the number of children.
- */
-int removeNodeFromBST(bst_t *root)
-{
-	if (!root->left && !root->right)
-	{
-		if (root->parent->right == root)
-			root->parent->right = NULL;
-		else
-			root->parent->left = NULL;
-		free(root);
-		return (0);
-	}
-	else if ((!root->left && root->right) || (!root->right && root->left))
-	{
-		if (!root->left)
-		{
-			if (root->parent->right == root)
-				root->parent->right = root->right;
-			else
-				root->parent->left = root->right;
-			root->right->parent = root->parent;
-		}
-		if (!root->right)
-		{
-			if (root->parent->right == root)
-				root->parent->right = root->left;
-			else
-				root->parent->left = root->left;
-			root->left->parent = root->parent;
-		}
-		free(root);
-		return (0);
-	}
-	else
-		return (replaceWithSuccessor(root));
-}
-
-/**
- * bst_remove - Removes a node from a BST tree.
- * @root: The root of the tree.
- * @value: The value of the node to remove.
- * Return: The updated tree.
- */
-bst_t *bst_remove(bst_t *root, int value)
-{
-	int type = 0;
-
-	if (root == NULL)
+	if (tree == NULL)
 		return (NULL);
-	if (value < root->n)
-		bst_remove(root->left, value);
-	else if (value > root->n)
-		bst_remove(root->right, value);
-	else if (value == root->n)
+	if (*tree == NULL)
 	{
-		type = removeNodeFromBST(root);
-		if (type != 0)
-			bst_remove(root->right, type);
+		*tree = binary_tree_node(NULL, value);
+		return (*tree);
 	}
-	else
-		return (NULL);
-	return (root);
+	avl_insert_recursive(tree, *tree, &new, value);
+	return (new);
 }
 
